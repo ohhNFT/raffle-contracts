@@ -5,7 +5,6 @@ pub mod helpers;
 pub mod msg;
 pub mod nois_proxy;
 pub mod setup_accounts_and_block;
-pub mod setup_loan;
 pub mod setup_minter;
 pub mod setup_raffle;
 pub mod templates;

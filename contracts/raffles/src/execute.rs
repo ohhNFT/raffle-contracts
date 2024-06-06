@@ -153,10 +153,28 @@ pub fn execute_create_raffle(
 
     // bypass sending fee if static raffle creation cost is 0
     if !fee.amount.is_zero() {
+        // calculate the royalty amount as a percentage of the fee
+        let royalty_fee_amount = fee.amount * config.royalty_rate;
+        let royalty_fee = Coin {
+            denom: fee.denom.clone(),
+            amount: royalty_fee_amount,
+        };
+        let transfer_royalty_msg: CosmosMsg = BankMsg::Send {
+            to_address: config.royalty_addr.to_string(),
+            amount: vec![royalty_fee.clone()],
+        }
+        .into();
+        msgs.push(transfer_royalty_msg);
         // transfer only the calculated fee amount from the coins sent
         let transfer_fee_msg: CosmosMsg = BankMsg::Send {
             to_address: config.fee_addr.to_string(),
-            amount: vec![fee],
+            amount: vec![Coin {
+                denom: fee.denom,
+                amount: fee
+                    .amount
+                    .checked_sub(royalty_fee.amount)
+                    .unwrap_or_default(),
+            }],
         }
         .into();
         // add msg to response
@@ -678,9 +696,11 @@ pub fn execute_update_config(
     name: Option<String>,
     owner: Option<String>,
     fee_addr: Option<String>,
+    royalty_addr: Option<String>,
     minimum_raffle_duration: Option<u64>,
     max_tickets_per_raffle: Option<u32>,
     raffle_fee: Option<Decimal>,
+    royalty_rate: Option<Decimal>,
     nois_proxy_addr: Option<String>,
     nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
@@ -707,6 +727,10 @@ pub fn execute_update_config(
         Some(fea) => deps.api.addr_validate(&fea)?,
         None => config.fee_addr,
     };
+    let royalty_addr = match royalty_addr {
+        Some(roy) => deps.api.addr_validate(&roy)?,
+        None => config.royalty_addr,
+    };
     let minimum_raffle_duration = match minimum_raffle_duration {
         Some(mrd) => mrd.max(MINIMUM_RAFFLE_DURATION),
         None => config.minimum_raffle_duration,
@@ -720,6 +744,16 @@ pub fn execute_update_config(
             rf
         }
         None => config.raffle_fee,
+    };
+    let royalty_rate = match royalty_rate {
+        Some(rf) => {
+            ensure!(
+                rf >= Decimal::zero() && rf <= Decimal::one(),
+                ContractError::InvalidFeeRate {}
+            );
+            rf
+        }
+        None => config.royalty_rate,
     };
 
     let nois_proxy_addr = match nois_proxy_addr {
@@ -768,8 +802,10 @@ pub fn execute_update_config(
         name,
         owner,
         fee_addr,
+        royalty_addr,
         minimum_raffle_duration,
         raffle_fee,
+        royalty_rate,
         locks: config.locks,
         nois_proxy_addr,
         nois_proxy_coin,

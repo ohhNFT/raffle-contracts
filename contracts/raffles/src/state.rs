@@ -38,6 +38,8 @@ pub struct Config {
     pub max_tickets_per_raffle: Option<u32>,
     /// A % cut of all raffle fee's generated to go to the fee_addr
     pub raffle_fee: Decimal,
+    pub royalty_rate: Decimal,
+    pub royalty_addr: Addr,
     /// locks the contract from new raffles being created
     pub locks: Locks,
     /// The nois_proxy contract address
@@ -66,6 +68,8 @@ pub struct OldConfig {
     pub max_tickets_per_raffle: Option<u32>,
     /// A % cut of all raffle fee's generated to go to the fee_addr
     pub raffle_fee: Decimal,
+    pub royalty_rate: Decimal,
+    pub royalty_addr: Addr,
     /// locks the contract from new raffles being created
     pub locks: Locks,
     /// The nois_proxy contract address

@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
+import { Uint128, Decimal, InstantiateMsg, Coin, ExecuteMsg, AssetInfo, GatingOptionsMsg, Timestamp, Uint64, Binary, HexBinary, Cw721Coin, Sg721Token, RaffleOptionsMsg, Cw20Coin, Cw721ReceiveMsg, NoisCallback, QueryMsg, QueryFilters, Addr, GatingOptions, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, Cw20CoinVerified, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
 export interface RaffleReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -14,7 +14,7 @@ export interface RaffleReadOnlyInterface {
     raffleId
   }: {
     raffleId: number;
-  }) => Promise<RaffleInfoResponse>;
+  }) => Promise<RaffleResponse>;
   allRaffles: ({
     filters,
     limit,
@@ -32,14 +32,14 @@ export interface RaffleReadOnlyInterface {
     limit?: number;
     raffleId: number;
     startAfter?: number;
-  }) => Promise<AllTicketsResponse>;
+  }) => Promise<ArrayOfString>;
   ticketCount: ({
     owner,
     raffleId
   }: {
     owner: string;
     raffleId: number;
-  }) => Promise<TicketCountResponse>;
+  }) => Promise<Uint32>;
 }
 export class RaffleQueryClient implements RaffleReadOnlyInterface {
   client: CosmWasmClient;
@@ -64,7 +64,7 @@ export class RaffleQueryClient implements RaffleReadOnlyInterface {
     raffleId
   }: {
     raffleId: number;
-  }): Promise<RaffleInfoResponse> => {
+  }): Promise<RaffleResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       raffle_info: {
         raffle_id: raffleId
@@ -96,7 +96,7 @@ export class RaffleQueryClient implements RaffleReadOnlyInterface {
     limit?: number;
     raffleId: number;
     startAfter?: number;
-  }): Promise<AllTicketsResponse> => {
+  }): Promise<ArrayOfString> => {
     return this.client.queryContractSmart(this.contractAddress, {
       all_tickets: {
         limit,
@@ -111,7 +111,7 @@ export class RaffleQueryClient implements RaffleReadOnlyInterface {
   }: {
     owner: string;
     raffleId: number;
-  }): Promise<TicketCountResponse> => {
+  }): Promise<Uint32> => {
     return this.client.queryContractSmart(this.contractAddress, {
       ticket_count: {
         owner,
@@ -125,13 +125,11 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   sender: string;
   createRaffle: ({
     assets,
-    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
-    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -141,12 +139,16 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   }: {
     raffleId: number;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
+  claimRaffle: ({
+    raffleId
+  }: {
+    raffleId: number;
+  }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
     creationCoins,
     feeAddr,
     maxTicketsPerRaffle,
     minimumRaffleDuration,
-    minimumRaffleTimeout,
     name,
     noisProxyAddr,
     noisProxyCoin,
@@ -157,7 +159,6 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     feeAddr?: string;
     maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
-    minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
     noisProxyCoin?: Coin;
@@ -174,10 +175,12 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     raffleTicketPrice?: AssetInfo;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   buyTicket: ({
+    onBehalfOf,
     raffleId,
     sentAssets,
     ticketCount
   }: {
+    onBehalfOf?: string;
     raffleId: number;
     sentAssets: AssetInfo;
     ticketCount: number;
@@ -191,25 +194,20 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     sender: string;
     tokenId: string;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
-  determineWinner: ({
-    raffleId
-  }: {
-    raffleId: number;
-  }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   noisReceive: ({
     callback
   }: {
     callback: NoisCallback;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
-  toggleLock: ({
-    lock
-  }: {
-    lock: boolean;
-  }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   updateRandomness: ({
     raffleId
   }: {
     raffleId: number;
+  }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
+  toggleLock: ({
+    lock
+  }: {
+    lock: boolean;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
@@ -224,25 +222,23 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     this.contractAddress = contractAddress;
     this.createRaffle = this.createRaffle.bind(this);
     this.cancelRaffle = this.cancelRaffle.bind(this);
+    this.claimRaffle = this.claimRaffle.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
     this.modifyRaffle = this.modifyRaffle.bind(this);
     this.buyTicket = this.buyTicket.bind(this);
     this.receive = this.receive.bind(this);
-    this.determineWinner = this.determineWinner.bind(this);
     this.noisReceive = this.noisReceive.bind(this);
-    this.toggleLock = this.toggleLock.bind(this);
     this.updateRandomness = this.updateRandomness.bind(this);
+    this.toggleLock = this.toggleLock.bind(this);
   }
 
   createRaffle = async ({
     assets,
-    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
-    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -250,7 +246,6 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     return await this.client.execute(this.sender, this.contractAddress, {
       create_raffle: {
         assets,
-        autocycle,
         owner,
         raffle_options: raffleOptions,
         raffle_ticket_price: raffleTicketPrice
@@ -268,12 +263,22 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
       }
     }, fee, memo, funds);
   };
+  claimRaffle = async ({
+    raffleId
+  }: {
+    raffleId: number;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      claim_raffle: {
+        raffle_id: raffleId
+      }
+    }, fee, memo, funds);
+  };
   updateConfig = async ({
     creationCoins,
     feeAddr,
     maxTicketsPerRaffle,
     minimumRaffleDuration,
-    minimumRaffleTimeout,
     name,
     noisProxyAddr,
     noisProxyCoin,
@@ -284,7 +289,6 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     feeAddr?: string;
     maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
-    minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
     noisProxyCoin?: Coin;
@@ -297,7 +301,6 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
         fee_addr: feeAddr,
         max_tickets_per_raffle: maxTicketsPerRaffle,
         minimum_raffle_duration: minimumRaffleDuration,
-        minimum_raffle_timeout: minimumRaffleTimeout,
         name,
         nois_proxy_addr: noisProxyAddr,
         nois_proxy_coin: noisProxyCoin,
@@ -324,16 +327,19 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     }, fee, memo, funds);
   };
   buyTicket = async ({
+    onBehalfOf,
     raffleId,
     sentAssets,
     ticketCount
   }: {
+    onBehalfOf?: string;
     raffleId: number;
     sentAssets: AssetInfo;
     ticketCount: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       buy_ticket: {
+        on_behalf_of: onBehalfOf,
         raffle_id: raffleId,
         sent_assets: sentAssets,
         ticket_count: ticketCount
@@ -357,17 +363,6 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
       }
     }, fee, memo, funds);
   };
-  determineWinner = async ({
-    raffleId
-  }: {
-    raffleId: number;
-  }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      determine_winner: {
-        raffle_id: raffleId
-      }
-    }, fee, memo, funds);
-  };
   noisReceive = async ({
     callback
   }: {
@@ -379,17 +374,6 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
       }
     }, fee, memo, funds);
   };
-  toggleLock = async ({
-    lock
-  }: {
-    lock: boolean;
-  }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      toggle_lock: {
-        lock
-      }
-    }, fee, memo, funds);
-  };
   updateRandomness = async ({
     raffleId
   }: {
@@ -398,6 +382,17 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_randomness: {
         raffle_id: raffleId
+      }
+    }, fee, memo, funds);
+  };
+  toggleLock = async ({
+    lock
+  }: {
+    lock: boolean;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      toggle_lock: {
+        lock
       }
     }, fee, memo, funds);
   };

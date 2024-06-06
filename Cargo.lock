@@ -218,7 +218,6 @@ dependencies = [
  "dao-voting 2.3.0",
  "dao-voting-cw20-staked",
  "hex",
- "nft-loans-nc",
  "nois",
  "raffles",
  "rand",
@@ -2850,26 +2849,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nft-loans-nc"
-version = "0.4.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.2.0",
- "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
- "nois",
- "schemars",
- "serde",
- "sg-std",
- "sg721",
- "sg721-base",
- "thiserror",
- "utils",
-]
-
-[[package]]
 name = "nois"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3879,7 +3858,6 @@ dependencies = [
  "cw721 0.18.0",
  "dotenv",
  "env_logger",
- "nft-loans-nc",
  "raffles",
  "sg721",
  "sg721-base",
@@ -4130,9 +4108,9 @@ dependencies = [
 
 [[package]]
 name = "sg1"
-version = "3.7.0"
+version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4835752161617c511f0d03cde98bba505c9dc28613d248b7b79980b6c3e6c625"
+checksum = "283a5e3e0e3e96a137fd4a43ffd07d1f44d725d7b2f66829a5bf3a95b1dd768f"
 dependencies = [
  "cosmwasm-std",
  "cw-utils 1.0.3",

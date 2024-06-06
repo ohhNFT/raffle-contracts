@@ -134,7 +134,7 @@ mod tests {
         let res = app
             .wrap()
             .query_balance(TREASURY_ADDR, NATIVE_DENOM.to_string());
-        assert_eq!(res.unwrap().amount, Uint128::new(50));
+        assert_eq!(res.unwrap().amount, Uint128::new(45));
 
         let owner_balance_before = app
             .wrap()
@@ -191,8 +191,8 @@ mod tests {
         // at 50%, owner should recieve 10
         assert_eq!(owner_balance_after - owner_balance_before, Uint128::new(10));
 
-        // Treasury should contain 50% (10) + the 50 creation fee
-        assert_treasury_balance(&app, NATIVE_DENOM, 10 + 50);
+        // Treasury should contain 50% (10) + the 50 creation fee - 5 royalty
+        assert_treasury_balance(&app, NATIVE_DENOM, 10 + 45);
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
             .wrap()
             .query_balance(contracts.raffle.clone(), NATIVE_DENOM.to_string());
         assert_eq!(res.unwrap().amount, Uint128::new(10));
-        assert_treasury_balance(&app, NATIVE_DENOM, 50);
+        assert_treasury_balance(&app, NATIVE_DENOM, 45);
         let owner_balance_before = app
             .wrap()
             .query_balance(owner_addr.clone(), NATIVE_DENOM.to_string())
@@ -248,8 +248,8 @@ mod tests {
             .unwrap();
         assert_eq!(res.owner, one.to_string());
 
-        // confirm treasury has right amount of tokens (creation - 50 + 10% of sales - 5)
-        assert_treasury_balance(&app, NATIVE_DENOM, 55);
+        // confirm treasury has right amount of tokens (creation - 50 + 10% of sales - 5 MINUS 5 royalty)
+        assert_treasury_balance(&app, NATIVE_DENOM, 50);
 
         // confirm raffle owner and treasury set recieve correct amount of tokens
         let owner_balance_after = app

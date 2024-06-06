@@ -7,19 +7,17 @@
 import { MsgExecuteContractEncodeObject } from "cosmwasm";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
+import { Uint128, Decimal, InstantiateMsg, Coin, ExecuteMsg, AssetInfo, GatingOptionsMsg, Timestamp, Uint64, Binary, HexBinary, Cw721Coin, Sg721Token, RaffleOptionsMsg, Cw20Coin, Cw721ReceiveMsg, NoisCallback, QueryMsg, QueryFilters, Addr, GatingOptions, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, Cw20CoinVerified, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
 export interface RaffleMessage {
   contractAddress: string;
   sender: string;
   createRaffle: ({
     assets,
-    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
-    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -29,12 +27,16 @@ export interface RaffleMessage {
   }: {
     raffleId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  claimRaffle: ({
+    raffleId
+  }: {
+    raffleId: number;
+  }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateConfig: ({
     creationCoins,
     feeAddr,
     maxTicketsPerRaffle,
     minimumRaffleDuration,
-    minimumRaffleTimeout,
     name,
     noisProxyAddr,
     noisProxyCoin,
@@ -45,7 +47,6 @@ export interface RaffleMessage {
     feeAddr?: string;
     maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
-    minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
     noisProxyCoin?: Coin;
@@ -62,10 +63,12 @@ export interface RaffleMessage {
     raffleTicketPrice?: AssetInfo;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   buyTicket: ({
+    onBehalfOf,
     raffleId,
     sentAssets,
     ticketCount
   }: {
+    onBehalfOf?: string;
     raffleId: number;
     sentAssets: AssetInfo;
     ticketCount: number;
@@ -79,25 +82,20 @@ export interface RaffleMessage {
     sender: string;
     tokenId: string;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  determineWinner: ({
-    raffleId
-  }: {
-    raffleId: number;
-  }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   noisReceive: ({
     callback
   }: {
     callback: NoisCallback;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  toggleLock: ({
-    lock
-  }: {
-    lock: boolean;
-  }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateRandomness: ({
     raffleId
   }: {
     raffleId: number;
+  }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  toggleLock: ({
+    lock
+  }: {
+    lock: boolean;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class RaffleMessageComposer implements RaffleMessage {
@@ -109,25 +107,23 @@ export class RaffleMessageComposer implements RaffleMessage {
     this.contractAddress = contractAddress;
     this.createRaffle = this.createRaffle.bind(this);
     this.cancelRaffle = this.cancelRaffle.bind(this);
+    this.claimRaffle = this.claimRaffle.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
     this.modifyRaffle = this.modifyRaffle.bind(this);
     this.buyTicket = this.buyTicket.bind(this);
     this.receive = this.receive.bind(this);
-    this.determineWinner = this.determineWinner.bind(this);
     this.noisReceive = this.noisReceive.bind(this);
-    this.toggleLock = this.toggleLock.bind(this);
     this.updateRandomness = this.updateRandomness.bind(this);
+    this.toggleLock = this.toggleLock.bind(this);
   }
 
   createRaffle = ({
     assets,
-    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
-    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -140,7 +136,6 @@ export class RaffleMessageComposer implements RaffleMessage {
         msg: toUtf8(JSON.stringify({
           create_raffle: {
             assets,
-            autocycle,
             owner,
             raffle_options: raffleOptions,
             raffle_ticket_price: raffleTicketPrice
@@ -169,12 +164,30 @@ export class RaffleMessageComposer implements RaffleMessage {
       })
     };
   };
+  claimRaffle = ({
+    raffleId
+  }: {
+    raffleId: number;
+  }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          claim_raffle: {
+            raffle_id: raffleId
+          }
+        })),
+        funds
+      })
+    };
+  };
   updateConfig = ({
     creationCoins,
     feeAddr,
     maxTicketsPerRaffle,
     minimumRaffleDuration,
-    minimumRaffleTimeout,
     name,
     noisProxyAddr,
     noisProxyCoin,
@@ -185,7 +198,6 @@ export class RaffleMessageComposer implements RaffleMessage {
     feeAddr?: string;
     maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
-    minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
     noisProxyCoin?: Coin;
@@ -203,7 +215,6 @@ export class RaffleMessageComposer implements RaffleMessage {
             fee_addr: feeAddr,
             max_tickets_per_raffle: maxTicketsPerRaffle,
             minimum_raffle_duration: minimumRaffleDuration,
-            minimum_raffle_timeout: minimumRaffleTimeout,
             name,
             nois_proxy_addr: noisProxyAddr,
             nois_proxy_coin: noisProxyCoin,
@@ -241,10 +252,12 @@ export class RaffleMessageComposer implements RaffleMessage {
     };
   };
   buyTicket = ({
+    onBehalfOf,
     raffleId,
     sentAssets,
     ticketCount
   }: {
+    onBehalfOf?: string;
     raffleId: number;
     sentAssets: AssetInfo;
     ticketCount: number;
@@ -256,6 +269,7 @@ export class RaffleMessageComposer implements RaffleMessage {
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           buy_ticket: {
+            on_behalf_of: onBehalfOf,
             raffle_id: raffleId,
             sent_assets: sentAssets,
             ticket_count: ticketCount
@@ -290,25 +304,6 @@ export class RaffleMessageComposer implements RaffleMessage {
       })
     };
   };
-  determineWinner = ({
-    raffleId
-  }: {
-    raffleId: number;
-  }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
-    return {
-      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-      value: MsgExecuteContract.fromPartial({
-        sender: this.sender,
-        contract: this.contractAddress,
-        msg: toUtf8(JSON.stringify({
-          determine_winner: {
-            raffle_id: raffleId
-          }
-        })),
-        funds
-      })
-    };
-  };
   noisReceive = ({
     callback
   }: {
@@ -328,25 +323,6 @@ export class RaffleMessageComposer implements RaffleMessage {
       })
     };
   };
-  toggleLock = ({
-    lock
-  }: {
-    lock: boolean;
-  }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
-    return {
-      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-      value: MsgExecuteContract.fromPartial({
-        sender: this.sender,
-        contract: this.contractAddress,
-        msg: toUtf8(JSON.stringify({
-          toggle_lock: {
-            lock
-          }
-        })),
-        funds
-      })
-    };
-  };
   updateRandomness = ({
     raffleId
   }: {
@@ -360,6 +336,25 @@ export class RaffleMessageComposer implements RaffleMessage {
         msg: toUtf8(JSON.stringify({
           update_randomness: {
             raffle_id: raffleId
+          }
+        })),
+        funds
+      })
+    };
+  };
+  toggleLock = ({
+    lock
+  }: {
+    lock: boolean;
+  }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          toggle_lock: {
+            lock
           }
         })),
         funds

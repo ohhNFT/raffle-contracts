@@ -32,9 +32,11 @@ mod tests {
                     nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some("atlas-treasury-placeholder".to_owned()),
+                    royalty_addr: None,
                     minimum_raffle_duration: None,
                     max_ticket_number: None,
                     raffle_fee: Decimal::percent(200),
+                    royalty_rate: Decimal::percent(200),
                     creation_coins: vec![
                         coin(4, NATIVE_DENOM.to_string()),
                         coin(20, "ustars".to_string()),

@@ -106,9 +106,11 @@ pub fn proper_raffle_instantiate_precise(
                 nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
                 fee_addr: Some(TREASURY_ADDR.to_owned()),
+                royalty_addr: None,
                 minimum_raffle_duration: None,
                 max_ticket_number,
                 raffle_fee: Decimal::percent(50),
+                royalty_rate: Decimal::percent(10),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string()),

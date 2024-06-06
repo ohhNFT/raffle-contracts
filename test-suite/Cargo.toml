@@ -41,7 +41,6 @@ raffles = { path = "../contracts/raffles", features = [
     "vanilla",
     "sg",
 ] }
-nft-loans-nc = { path = "../contracts/nft-loan", features = ["vanilla", "sg"] }
 utils = { path = "../packages/utils" }
 
 #  For gating

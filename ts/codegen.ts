@@ -1,45 +1,41 @@
-import codegen from '@cosmwasm/ts-codegen';
+import codegen from "@cosmwasm/ts-codegen";
 
 codegen({
   contracts: [
     {
-      name: 'Raffle',
-      dir: '../contracts/raffles/schema'
+      name: "Raffle",
+      dir: "../contracts/raffles/schema",
     },
-    {
-      name: 'NFTLoan',
-      dir: '../contracts/nft-loan/schema'
-    }
   ],
-  outPath: './src/',
+  outPath: "./src/",
 
   // options are completely optional ;)
   options: {
     bundle: {
-      bundleFile: 'bundle.ts',
-      scope: 'contracts'
+      bundleFile: "bundle.ts",
+      scope: "contracts",
     },
     types: {
-      enabled: true
+      enabled: true,
     },
     client: {
-      enabled: true
+      enabled: true,
     },
     reactQuery: {
-      enabled: false,
+      enabled: true,
       optionalClient: true,
-      version: 'v4',
+      version: "v4",
       mutations: true,
       queryKeys: true,
       queryFactory: true,
     },
     recoil: {
-      enabled: false
+      enabled: false,
     },
     messageComposer: {
-        enabled: true
+      enabled: true,
     },
-  }
+  },
 }).then(() => {
-  console.log('✨ all done!');
+  console.log("✨ all done!");
 });

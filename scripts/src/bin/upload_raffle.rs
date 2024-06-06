@@ -1,4 +1,4 @@
-use cosmwasm_std::{coin, coins, Decimal, Uint128};
+use cosmwasm_std::{coin, coins, Decimal};
 use cw_orch::prelude::TxHandler;
 use cw_orch::{
     contract::interface_traits::{CwOrchInstantiate, CwOrchUpload},
@@ -25,9 +25,11 @@ pub fn main() -> anyhow::Result<()> {
             ),
             owner: None,
             fee_addr: Some(chain.sender().to_string()),
+            royalty_addr: None,
             minimum_raffle_duration: Some(60),
             max_ticket_number: None,
             raffle_fee: Decimal::percent(10),
+            royalty_rate: Decimal::percent(10),
             creation_coins: Some(coins(45, "ustars")),
             fee_discounts: vec![],
         },

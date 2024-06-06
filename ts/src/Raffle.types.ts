@@ -4,10 +4,27 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
+export type Uint128 = string;
+export type Decimal = string;
+export interface InstantiateMsg {
+  creation_coins?: Coin[] | null;
+  fee_addr?: string | null;
+  max_ticket_number?: number | null;
+  minimum_raffle_duration?: number | null;
+  name: string;
+  nois_proxy_addr: string;
+  nois_proxy_coin: Coin;
+  owner?: string | null;
+  raffle_fee: Decimal;
+}
+export interface Coin {
+  amount: Uint128;
+  denom: string;
+  [k: string]: unknown;
+}
 export type ExecuteMsg = {
   create_raffle: {
     assets: AssetInfo[];
-    autocycle?: boolean | null;
     owner?: string | null;
     raffle_options: RaffleOptionsMsg;
     raffle_ticket_price: AssetInfo;
@@ -17,12 +34,15 @@ export type ExecuteMsg = {
     raffle_id: number;
   };
 } | {
+  claim_raffle: {
+    raffle_id: number;
+  };
+} | {
   update_config: {
     creation_coins?: Coin[] | null;
     fee_addr?: string | null;
     max_tickets_per_raffle?: number | null;
     minimum_raffle_duration?: number | null;
-    minimum_raffle_timeout?: number | null;
     name?: string | null;
     nois_proxy_addr?: string | null;
     nois_proxy_coin?: Coin | null;
@@ -37,6 +57,7 @@ export type ExecuteMsg = {
   };
 } | {
   buy_ticket: {
+    on_behalf_of?: string | null;
     raffle_id: number;
     sent_assets: AssetInfo;
     ticket_count: number;
@@ -44,20 +65,16 @@ export type ExecuteMsg = {
 } | {
   receive: Cw721ReceiveMsg;
 } | {
-  determine_winner: {
-    raffle_id: number;
-  };
-} | {
   nois_receive: {
     callback: NoisCallback;
   };
 } | {
-  toggle_lock: {
-    lock: boolean;
-  };
-} | {
   update_randomness: {
     raffle_id: number;
+  };
+} | {
+  toggle_lock: {
+    lock: boolean;
   };
 };
 export type AssetInfo = {
@@ -67,20 +84,27 @@ export type AssetInfo = {
 } | {
   sg721_token: Sg721Token;
 };
-export type Uint128 = string;
+export type GatingOptionsMsg = {
+  cw721_coin: string;
+} | {
+  cw20: Cw20Coin;
+} | {
+  coin: Coin;
+} | {
+  sg721_token: string;
+} | {
+  dao_voting_power: {
+    dao_address: string;
+    min_voting_power: Uint128;
+  };
+};
 export type Timestamp = Uint64;
 export type Uint64 = string;
-export type Decimal = string;
 export type Binary = string;
 export type HexBinary = string;
 export interface Cw721Coin {
   address: string;
   token_id: string;
-}
-export interface Coin {
-  amount: Uint128;
-  denom: string;
-  [k: string]: unknown;
 }
 export interface Sg721Token {
   address: string;
@@ -88,12 +112,18 @@ export interface Sg721Token {
 }
 export interface RaffleOptionsMsg {
   comment?: string | null;
+  gating_raffle: GatingOptionsMsg[];
   max_ticket_number?: number | null;
   max_ticket_per_address?: number | null;
+  min_ticket_number?: number | null;
+  one_winner_per_asset: boolean;
   raffle_duration?: number | null;
   raffle_preview?: number | null;
   raffle_start_timestamp?: Timestamp | null;
-  raffle_timeout?: number | null;
+}
+export interface Cw20Coin {
+  address: string;
+  amount: Uint128;
 }
 export interface Cw721ReceiveMsg {
   msg: Binary;
@@ -104,18 +134,6 @@ export interface NoisCallback {
   job_id: string;
   published: Timestamp;
   randomness: HexBinary;
-}
-export interface InstantiateMsg {
-  creation_coins?: Coin[] | null;
-  fee_addr?: string | null;
-  max_ticket_number?: number | null;
-  minimum_raffle_duration?: number | null;
-  minimum_raffle_timeout?: number | null;
-  name: string;
-  nois_proxy_addr: string;
-  nois_proxy_coin: Coin;
-  owner?: string | null;
-  raffle_fee: Decimal;
 }
 export type QueryMsg = {
   config: {};
@@ -143,12 +161,27 @@ export type QueryMsg = {
 };
 export interface QueryFilters {
   contains_token?: string | null;
+  gated_rights_ticket_buyer?: string | null;
   owner?: string | null;
   states?: string[] | null;
   ticket_depositor?: string | null;
 }
 export type Addr = string;
-export type RaffleState = "created" | "started" | "closed" | "finished" | "claimed" | "cancelled";
+export type GatingOptions = {
+  cw721_coin: Addr;
+} | {
+  cw20: Cw20CoinVerified;
+} | {
+  coin: Coin;
+} | {
+  sg721_token: Addr;
+} | {
+  dao_voting_power: {
+    dao_address: Addr;
+    min_voting_power: Uint128;
+  };
+};
+export type RaffleState = "created" | "started" | "closed" | "claimed" | "finished" | "cancelled";
 export interface AllRafflesResponse {
   raffles: RaffleResponse[];
 }
@@ -165,16 +198,22 @@ export interface RaffleInfo {
   raffle_options: RaffleOptions;
   raffle_ticket_price: AssetInfo;
   randomness?: HexBinary | null;
-  winner?: Addr | null;
+  winners: Addr[];
 }
 export interface RaffleOptions {
   comment?: string | null;
+  gating_raffle: GatingOptions[];
   max_ticket_number?: number | null;
   max_ticket_per_address?: number | null;
+  min_ticket_number?: number | null;
+  one_winner_per_asset: boolean;
   raffle_duration: number;
   raffle_preview: number;
   raffle_start_timestamp: Timestamp;
-  raffle_timeout: number;
+}
+export interface Cw20CoinVerified {
+  address: Addr;
+  amount: Uint128;
 }
 export type ArrayOfString = string[];
 export interface ConfigResponse {
@@ -183,7 +222,6 @@ export interface ConfigResponse {
   last_raffle_id: number;
   locks: Locks;
   minimum_raffle_duration: number;
-  minimum_raffle_timeout: number;
   name: string;
   nois_proxy_addr: Addr;
   nois_proxy_coin: Coin;

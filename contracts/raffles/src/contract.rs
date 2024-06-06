@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, QueryResponse, StdResult, Uint128,
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
+    QueryResponse, StdResult, Uint128,
 };
 
 use crate::{
@@ -68,12 +68,16 @@ pub fn instantiate(
         fee_addr: deps
             .api
             .addr_validate(&msg.fee_addr.unwrap_or_else(|| info.sender.to_string()))?,
+        royalty_addr: deps
+            .api
+            .addr_validate(&msg.royalty_addr.unwrap_or_else(|| info.sender.to_string()))?,
         last_raffle_id: None,
         minimum_raffle_duration: msg
             .minimum_raffle_duration
             .unwrap_or(MINIMUM_RAFFLE_DURATION)
             .max(MINIMUM_RAFFLE_DURATION),
         raffle_fee: msg.raffle_fee,
+        royalty_rate: msg.royalty_rate,
         locks: Locks {
             lock: false,
             sudo_lock: false,
@@ -106,10 +110,12 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response>
         name: old_config.name,
         owner: old_config.owner,
         fee_addr: old_config.fee_addr,
+        royalty_addr: old_config.royalty_addr,
         last_raffle_id: old_config.last_raffle_id,
         minimum_raffle_duration: old_config.minimum_raffle_duration,
         max_tickets_per_raffle: old_config.max_tickets_per_raffle,
         raffle_fee: old_config.raffle_fee,
+        royalty_rate: old_config.royalty_rate,
         locks: old_config.locks,
         nois_proxy_addr: old_config.nois_proxy_addr,
         nois_proxy_coin: old_config.nois_proxy_coin,
@@ -186,9 +192,11 @@ pub fn execute(
             name,
             owner,
             fee_addr,
+            royalty_addr,
             minimum_raffle_duration,
             max_tickets_per_raffle,
             raffle_fee,
+            royalty_rate,
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
@@ -200,9 +208,11 @@ pub fn execute(
             name,
             owner,
             fee_addr,
+            royalty_addr,
             minimum_raffle_duration,
             max_tickets_per_raffle,
             raffle_fee,
+            royalty_rate,
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,

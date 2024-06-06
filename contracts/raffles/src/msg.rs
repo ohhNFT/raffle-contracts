@@ -16,12 +16,15 @@ pub struct InstantiateMsg {
     pub owner: Option<String>,
     // Destination of Fee Streams
     pub fee_addr: Option<String>,
+    // Destination of Royalties
+    pub royalty_addr: Option<String>,
     // Minimum lifecycle length of raffle
     pub minimum_raffle_duration: Option<u64>,
     // Maximum participant limit for a raffle
     pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Decimal,
+    pub royalty_rate: Decimal,
 
     pub creation_coins: Option<Vec<Coin>>,
 
@@ -40,6 +43,11 @@ impl InstantiateMsg {
         // Check the fee distribution
         if self.raffle_fee >= Decimal::one() {
             return Err(StdError::generic_err("The Fee rate should be lower than 1"));
+        }
+        if self.royalty_rate >= Decimal::one() {
+            return Err(StdError::generic_err(
+                "The royalty rate should be lower than 1",
+            ));
         }
 
         Ok(())
@@ -66,9 +74,11 @@ pub enum ExecuteMsg {
         name: Option<String>,
         owner: Option<String>,
         fee_addr: Option<String>,
+        royalty_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
         max_tickets_per_raffle: Option<u32>,
         raffle_fee: Option<Decimal>,
+        royalty_rate: Option<Decimal>,
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
