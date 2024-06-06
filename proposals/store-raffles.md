@@ -18,6 +18,11 @@ The fee will be reduced to **4%** if the creator owns any NFT of one of these co
 - [OhhNFT Presents: The Watchers](https://www.stargaze.zone/m/stars15jugk3w42q4a06df4p4tfqx5jnlrk2rg0c3sqj3ch0nhwyhj28ysnfvjf6/tokens)
 - [OhhNFT Presents: The Fallen](https://www.stargaze.zone/m/stars1ma3nhs3ncsk7hurcend63ylxgc3awju2w9e8wrtedhhghhxf0mpq73p84x/tokens)
 
+### Testnet deployment
+
+- Code ID: `4249`
+- Contract: `stars1k2pwhlmpl7elmf2kvpcjhjz79ushuqcvsv23dgp4v3uxlrxh0e6qnte4u0`
+
 ### SHA256 checksum
 
 ```
